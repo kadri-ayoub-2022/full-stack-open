@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant browser
+    participant server
+
+    Note right of browser: User writes a new note in the input field
+    Note right of browser: User clicks the "Save" button
+
+    Note right of browser: JavaScript intercepts the form submit\n(prevents page reload)
+
+    browser->>server: POST https://studies.cs.helsinki.fi/exampleapp/new_note_spa
+    activate server
+    Note left of server: Server saves the new note
+    server-->>browser: JSON response (confirmation / updated note)
+    deactivate server
+
+    Note right of browser: Browser updates the notes list\nusing JavaScript (DOM manipulation)
+    Note right of browser: Page is NOT reloaded
