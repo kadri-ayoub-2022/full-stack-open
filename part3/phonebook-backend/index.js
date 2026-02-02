@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
 
 app.use(cors());
 const PORT = process.env.PORT || 3001
@@ -9,6 +11,8 @@ const PORT = process.env.PORT || 3001
 
 
 app.use(express.json());
+
+app.use(express.static('dist'))
 
 app.use(morgan('tiny'));
 
@@ -89,6 +93,10 @@ app.post('/api/persons', (req, res) => {
     data.push(newPerson);
     res.json(newPerson);
 });
+
+app.use((req, res) => {
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'))
+})
 
 
 app.listen(PORT, () => {
