@@ -4,11 +4,24 @@ const morgan = require('morgan');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
+const Person = require('./models/Person');
+const mongoose = require('mongoose');
 
 app.use(cors());
 const PORT = process.env.PORT || 3001
 
+mongoose.set('strictQuery', false)
 
+const url = process.env.MONGODB_URI
+
+mongoose.set('strictQuery', false)
+mongoose.connect(url, { family: 4 })
+  .then(result => {
+    console.log('connected to MongoDB')
+  })
+  .catch(error => {
+    console.log('error connecting to MongoDB:', error.message)
+  })
 
 app.use(express.json());
 
@@ -50,48 +63,45 @@ const data = [
     }
 ];
 app.get('/api/persons', (req, res) => {
-  res.json(data);
-});
+  const data =  Person.find({}).then(result => {
+    res.json(result);
+  }
+);});
 
 app.get('/info', (req, res) => {
-  const entryCount = data.length;
-  const currentTime = new Date();
-  res.send(`<p>Phonebook has info for ${entryCount} people</p><p>${currentTime}</p>`);
+  Person.countDocuments({}).then(count => {
+    const currentTime = new Date();
+    res.send(`<p>Phonebook has info for ${count} people</p><p>${currentTime}</p>`);
+  });
 })
 
 app.get('/api/persons/:id', (req, res) => {
   const id = req.params.id;
-  const person = data.find(person => person.id === id);
+  const person = Person.findById(id).then(person => {
     if (person) {
         res.json(person);
     } else {
         res.status(404).end();
     }
+  });
 });
 
 app.delete('/api/persons/:id', (req, res) => {
   const id = req.params.id;
-  const index = data.findIndex(person => person.id === id);
-    if (index !== -1) {
-        data.splice(index, 1);
-        res.status(204).end();
-    } else {
-        res.status(404).end();
-    }   
+  const person = Person.findByIdAndRemove(id).then(person => {
+    res.status(204).end();
+  });
 });
 
 app.post('/api/persons', (req, res) => {
     const newPerson = req.body;
-    if (!newPerson.name || !newPerson.number) {
-        return res.status(400).json({ error: 'name or number is missing' });
-    }
-    if (data.find(person => person.name === newPerson.name)) {
-        return res.status(400).json({ error: 'name must be unique' });
-    }
-    const generatedId = Math.floor(Math.random() * 10000).toString();
-    newPerson.id = generatedId;
-    data.push(newPerson);
-    res.json(newPerson);
+    const person = new Person({
+      name: newPerson.name,
+      number: newPerson.number,
+    });
+    person.save().then(savedPerson => {
+      res.json(savedPerson);
+    });
 });
 
 app.use((req, res) => {
@@ -101,4 +111,4 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-});
+})
