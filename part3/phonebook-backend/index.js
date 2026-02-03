@@ -93,7 +93,7 @@ app.delete('/api/persons/:id', (req, res) => {
   });
 });
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const newPerson = req.body;
     const person = new Person({
       name: newPerson.name,
@@ -102,6 +102,20 @@ app.post('/api/persons', (req, res) => {
     person.save().then(savedPerson => {
       res.json(savedPerson);
     });
+});
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const id = req.params.id;
+  const updatedPerson = req.body;
+  Person.findByIdAndUpdate(
+    id,
+    { name: updatedPerson.name, number: updatedPerson.number },
+    { new: true, runValidators: true, context: 'query' }
+  )
+    .then(result => {
+      res.json(result);
+    })
+    .catch(error => next(error));
 });
 
 const errorHandler = (error, req, res, next) => {
