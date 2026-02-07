@@ -1,0 +1,26 @@
+import { createStore } from 'redux'
+
+const counterReducer = (state = 0, action) => { # it handle the actions in the store
+  switch (action.type) {
+    case 'INCREMENT':
+      return state + 1
+    case 'DECREMENT':
+      return state - 1
+    case 'ZERO':
+      return 0
+    default:
+      return state
+  }
+}
+
+
+const store = createStore(counterReducer)
+
+
+
+store.dispatch({ type: 'INCREMENT' }) # send action to the store
+
+store.subscribe(() => {
+  const storeNow = store.getState()
+  console.log(storeNow)
+})   # enable to create a callBack function that each time is called when a dispatch occures
