@@ -1,30 +1,41 @@
 const Blog = require('../models/Blog')
 const bcrypt = require('bcryptjs')
-const {getTokenFrom} = require('../utils/getTokenFrom')
+const jwt = require('jsonwebtoken')
 
+const getTokenFrom = request => {
+    const authorization = request.header('Authorization')
+    if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+      return authorization.substring(7)
+    }
+    return null
+}
 
-
-const getBlogs = (request, response) => {
+const getBlogs = async (request, response) => {
   const token = getTokenFrom(request)
 
   if (!token) {
     return response.status(401).json({ error: 'Token missing or invalid' })
   }
 
-  const decodedToken = jwt.verify(token, process.env.SECRET)
+  let decodedToken
+
+  try {
+    decodedToken = jwt.verify(token, process.env.SECRET)
+  } catch (error) {
+    return response.status(401).json({ error: 'Token missing or invalid' })
+  }
 
   if (!decodedToken.id) {
     return response.status(401).json({ error: 'Token missing or invalid' })
   }
 
+  const blogs = await Blog.find({ user: decodedToken.id })
 
-
-  Blog.find({}).then(blogs => {
-    response.json(blogs)
-  })
+  response.json(blogs)
 }
 
-const createBlog = (request, response) => {
+
+const createBlog = async (request, response) => {
 
   const { title, author, url, likes } = request.body
 
@@ -47,9 +58,9 @@ const createBlog = (request, response) => {
 
 
 
-    blog.save().then(result => {
-    response.status(201).json(result)
-  })
+    const savedBlog = await blog.save()
+    response.status(201).json(savedBlog)
+
 }
 
 const updateBlog = (request, response) => {
@@ -67,7 +78,11 @@ const updateBlog = (request, response) => {
     return response.status(401).json({ error: 'Token missing or invalid' })
   }
 
-  Blog.findByIdAndUpdate(id, updatedBlog, { new: true })
+  Blog.findByIdAndUpdate(id, updatedBlog, {
+    returnDocument: 'after',
+    runValidators: true,
+    context: 'query'
+  })
     .then(result => {
       response.json(result)
     })
@@ -77,7 +92,7 @@ const updateBlog = (request, response) => {
     })
 }
 
-const deleteBlog = (request, response) => {
+const deleteBlog = async (request, response) => {
   const { id } = request.params
 
   const token = getTokenFrom(request)
@@ -88,10 +103,12 @@ const deleteBlog = (request, response) => {
   if (!decodedToken.id) {
     return response.status(401).json({ error: 'Token missing or invalid' })
   }
-  if (decodedToken.id !== Blog.user.toString()) {
+  const blog = await Blog.findById(id)
+  console.log('Blog to delete:', blog)
+  if (decodedToken.id !== blog.user.toString()) {
     return response.status(403).json({ error: 'Unauthorized to delete this blog' })
   }
-  Blog.findByIdAndRemove(id)
+  Blog.findByIdAndDelete(id)
     .then(result => {
       response.status(204).end()
     })
