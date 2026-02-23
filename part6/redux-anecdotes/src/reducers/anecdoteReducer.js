@@ -13,7 +13,7 @@ const anecdoteSlice = createSlice({
         votes: anecdoteToChange.votes + 1
       }
       return state.map(anecdote => anecdote.id !== id ? anecdote : changedAnecdote)
-    },
+    },                    
     createAnecdote(state, action) {
       const content = action.payload
       state.push(content)
